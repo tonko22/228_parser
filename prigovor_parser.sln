@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.136
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "prigovor_parser", "prigovor_parser.pyproj", "{1BE62C6E-733C-446D-AA9B-75A7ED8D1CD7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1BE62C6E-733C-446D-AA9B-75A7ED8D1CD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BE62C6E-733C-446D-AA9B-75A7ED8D1CD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9AFBBE1C-8CE5-4AC2-80F2-B86FE4C02618}
+	EndGlobalSection
+EndGlobal

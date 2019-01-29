@@ -12,6 +12,8 @@ class prigovorParser():
     
     court_name_pattern = re.compile("\s+(.*) в составе")
     defendant_full_name_pattern = re.compile("подсудим[огй]{2,3} (.*)[ ,\r\n]", re.MULTILINE)
+    conviction_patterns = [ "ранее судим", "рецидив" ]
+    non_conviction_patterns = [ "не судим" ]
     drugs_sp = re.compile("вещества:")
     special_order_patterns = [ 
         "317 Уголовно-процессуальн", 
@@ -20,6 +22,7 @@ class prigovorParser():
         "316 УПК", 
         "в особом порядке",
         "без проведения судебного разбирательства" ]
+
     
     def __init__(self, text):
         self.text = text
@@ -96,7 +99,8 @@ class prigovorParser():
     @property
     def conviction(self):
         """ Судимость да/нет """
-        return
+        return True if any(e in self.text for e in self.conviction_patterns) else \
+            False if any(e in self.text for e in self.non_conviction_patterns) else None
     
     @property
     def imprisonment(self):
@@ -139,6 +143,7 @@ class prigovorParser():
             "Суд": self.court_name,
             "Дата приговора": self.sentence_date,
             "ФИО": self.defendants,
-            "Особый порядок": self.special_order
+            "Особый порядок": self.special_order,
+            "Судимость": self.conviction
         }
         return summary_dict
