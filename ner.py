@@ -12,6 +12,7 @@ class prigovorParser():
     
     court_name_pattern = re.compile("\s+(.*) в составе")
     defendant_full_name_pattern = re.compile("подсудим[огй]{2,3} (.*)[ ,\r\n]", re.MULTILINE)
+    special_order_patterns = [ "317 Уголовно-процессуальн", "316 Уголовно-процессуальн", "317 УПК", "316 УПК", "в особом порядке" ]
     drugs_sp = re.compile("вещества:")
     
     def __init__(self, text):
@@ -124,13 +125,14 @@ class prigovorParser():
     @property
     def special_order(self):
         """ Особый порядок да/нет """
-        return       
+        return any(e in self.text for e in self.special_order_patterns)
     
     @property
     def summary_dict(self):
         summary_dict = {
             "Суд": self.court_name,
             "Дата приговора": self.sentence_date,
-            "ФИО": self.defendants
+            "ФИО": self.defendants,
+            "Особый порядок": self.special_order
         }
         return summary_dict
