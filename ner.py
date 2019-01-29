@@ -20,7 +20,7 @@ class prigovorParser():
     @property
     def court_name(self):
         """ Суд, выносящий приговор """
-        for i, line in enumerate(self..paragraphs[:6]):
+        for i, line in enumerate(self.paragraphs[:6]):
             found = prigovorParser.court_name_pattern.search(line)
             if found:
                 return doc_parser.paragraphs[i][:found.start()]+"суд"
