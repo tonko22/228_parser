@@ -37,19 +37,20 @@ class prigovorParser():
 
     
     @property
-    def defendants(self):
-        """ Фио подсудимых """
-        defendants = []
-        for i, line in enumerate(doc_parser.paragraphs):
+    def defendant(self):
+        """ Фио первого подсудимого """
+        for i, line in enumerate(self.paragraphs):
             found = prigovorParser.defendant_full_name_pattern.search(line)
             if found:
                 defendant_dict = ner(line).matches[0].fact.as_json
+                if not defendant_dict.get("last"):
+                    break
                 first_letter = defendant_dict["last"][0]
                 if first_letter.islower():
                     defendant_dict["last"] = first_letter.upper() + defendant_dict["last"][1:]
-                full_name = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
-                defendants.append(full_name)
-        return defendants
+                defendant = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
+                return defendant
+        
     
     @property
     def conviction(self):
