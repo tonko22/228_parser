@@ -9,7 +9,6 @@ ner = NamesExtractor()
 class prigovorParser():
     """ All methods return parsed values in json format """
     intro_limit = 200 # first symbols to search for sentence_date
-    
     court_name_pattern = re.compile("в составе")
     defendant_full_name_pattern = re.compile("подсудимой|подсудимого")
     drugs_sp = re.compile("вещества:")
