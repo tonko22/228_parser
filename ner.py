@@ -10,8 +10,8 @@ class prigovorParser():
     """ All methods return parsed values in json format """
     intro_limit = 200 # first symbols to search for sentence_date
     
-    court_name_pattern = re.compile("в составе")
-    defendant_full_name_pattern = re.compile("подсудимой|подсудимого")
+    court_name_pattern = re.compile("\s+(.*) в составе")
+    defendant_full_name_pattern = re.compile("подсудим[огй]{2,3} (.*)[ ,\r\n]", re.MULTILINE)
     drugs_sp = re.compile("вещества:")
     
     def __init__(self, text):
@@ -21,35 +21,69 @@ class prigovorParser():
     @property
     def court_name(self):
         """ Суд, выносящий приговор """
-        for i, line in enumerate(doc_parser.paragraphs[:6]):
-            found = prigovorParser.court_name_pattern.search(line)
-            if found:
-                return doc_parser.paragraphs[i][:found.start()]+"суд"
+        try:
+            # search for pattern in text
+            match = self.court_name_pattern.search(self.text)
+
+            # return matched group
+            return match.group(1)
+        except:
+            # return None
+            return None
         
     @property
     def sentence_date(self):
         """ Дата приговора 
         Ищется первая дата в первых 200 символах
         """
-        date_matches = der(text[:self.intro_limit])
+        date_matches = der(self.text[:self.intro_limit])
         facts = [_.fact.as_json for _ in date_matches]
-        result_dict = date_matches.as_json[0]["fact"]
-        return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
+        if len(date_matches.as_json) > 0:
+            result_dict = date_matches.as_json[0]["fact"]
+            return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
+        else:
+            return None
 
     
     @property
     def defendants(self):
         """ Фио подсудимых """
+
+        # defendants list
         defendants = []
-        for i, line in enumerate(doc_parser.paragraphs):
-            found = prigovorParser.defendant_full_name_pattern.search(line)
-            if found:
-                defendant_dict = ner(line).matches[0].fact.as_json
-                first_letter = defendant_dict["last"][0]
-                if first_letter.islower():
-                    defendant_dict["last"] = first_letter.upper() + defendant_dict["last"][1:]
+        
+        try:
+            # search for pattern in text
+            match = self.defendant_full_name_pattern.search(self.text)
+
+            # parse line with NamesExtractor
+            name = ner(match.group(1).strip(", \t\r\n"))
+
+            # if there are name matches
+            if len(name.matches) > 0:
+
+                # get names as json
+                defendant_dict = name.matches[0].fact.as_json
+
+                # uppercase first letter
+                defendant_dict["last"] = defendant_dict["last"][0].upper() + defendant_dict["last"][1:]
+
+                # create full name
                 full_name = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
+
+                # add to dict
                 defendants.append(full_name)
+
+            # if there are no matches
+            else:
+
+                # add regexp match to dict
+                defendants.append(match.group(1))
+        except:
+            # return empty list
+            return []
+
+        # return defendants list
         return defendants
     
     @property
