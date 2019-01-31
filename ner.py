@@ -10,11 +10,35 @@ class prigovorParser():
     """ All methods return parsed values in json format """
     intro_limit = 200 # first symbols to search for sentence_date
     
+    # pattern to search court name
     court_name_pattern = re.compile("\s+(.*) в составе")
+
+    # pattern to search defendant's name
     defendant_full_name_pattern = re.compile("подсудим[огй]{2,3} (.*)[ ,\r\n]", re.MULTILINE)
-    conviction_patterns = [ "ранее судим", "рецидив" ]
+
+    # patterns to search conviction
+    conviction_patterns     = [ "ранее судим", "рецидив" ]
     non_conviction_patterns = [ "не судим" ]
+
+    # patterns to search sentence
+    sentence_patterns = re.compile("приговорил|П Р И Г О В О Р И Л", re.IGNORECASE)
+
+    # patterns to search suspended sentence
+    suspended_sentence_patterns = [ "условн", " 73 " ]
+
+    # pattern to search punishment
+    punishment_patterns = [
+        re.compile(("виновн[ымой]{2} в совершении(?:.*?)наказание(?:.*?)(один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)(?:.*?)(?:год|лет)" \
+            "(?:(?:.*?)(один|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(?:.*?)(?:месяц))?(?:.*?)\."), re.IGNORECASE),
+        re.compile("виновн[ымой]{2} в совершении(?:.*?)наказание(?:.*?)(\d+)(?:.*?)(?:год|лет)(?:(?:.*?)(\d+)(?:.*?)(?:месяц))?(?:.*?)\.", re.IGNORECASE) ]
+
+    # russian numbers
+    russian_numbers = [ "ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять", "одиннадцать", "двенадцать" ]
+
+    # pattern to search drugs
     drugs_sp = re.compile("вещества:")
+
+    # patterns to search special order
     special_order_patterns = [ 
         "317 Уголовно-процессуальн", 
         "316 Уголовно-процессуальн", 
@@ -23,7 +47,6 @@ class prigovorParser():
         "в особом порядке",
         "без проведения судебного разбирательства" ]
 
-    
     def __init__(self, text):
         self.text = text
         self.paragraphs = self.text.split('\n')
@@ -111,16 +134,91 @@ class prigovorParser():
     def drugs(self):
         """ Словарь {Вид наркотика: количество} """
         return
+
+    @property
+    def punishment(self):
+        """ Вид наказания (лишение свободы/ условное лишение свободы) и срок """
+
+        # zero results
+        punishment_type     = ""
+        punishment_duration = 0
+
+        # search sentence pattern
+        sentence_match = self.sentence_patterns.search(self.text)
+
+        # if there is no sentence pattern
+        if sentence_match == None: return None, None
+
+        # get type of sentence - suspended or not
+        punishment_type = "Условное лишение свободы" \
+            if all(e in self.text[sentence_match.start():] for e in self.suspended_sentence_patterns) \
+            else "Лишение свободы"
+
+        # if there is match
+        if sentence_match != None:
+
+            # years and months
+            years  = 0
+            months = 0
+
+            # iterate all punishment patterns
+            for i in range(len(self.punishment_patterns)):
+
+                # search punishment
+                punishment_match = self.punishment_patterns[i].search(self.text[sentence_match.start():])
+
+                # if there is match
+                if punishment_match != None:
+
+                    # check for exceptions
+                    try:
+
+                        # check for first group prescense
+                        if len(punishment_match.groups()) == 0: continue
+
+                        # get years
+                        years = int(punishment_match.group(1)) if i == 1 else self.russian_numbers.index(punishment_match.group(1).lower())
+
+                        # if second group exist
+                        if punishment_match.group(2) != None:
+
+                            # get months
+                            months = int(punishment_match.group(2)) if i == 1 else self.russian_numbers.index(punishment_match.group(2).lower())
+
+                        # print(punishment_match.group(0))
+                        # print("Years: ", years)
+                        # print("Months: ", months)
+
+                        # set punishment duration
+                        punishment_duration = years * 12 + months
+
+                        break
+
+                    # continue in case of exception
+                    except: continue
+
+        # return type and duration
+        return punishment_type, punishment_duration
     
     @property
     def punishment_type(self):
         """ Вид наказания (лишение свободы/ условное лишение свободы) """
-        return
+
+        # extract info about punishment
+        p_type, p_duration = self.punishment
+
+        # return punishment type
+        return p_type
     
     @property
     def punishment_duration(self):
         """ Срок наказания в месяцах """
-        return
+
+        # extract info about punishment
+        p_type, p_duration = self.punishment
+
+        # return punishment duration
+        return p_duration
 
     @property
     def extenuating_circumstances(self):
@@ -144,6 +242,8 @@ class prigovorParser():
             "Дата приговора": self.sentence_date,
             "ФИО": self.defendants,
             "Особый порядок": self.special_order,
-            "Судимость": self.conviction
+            "Судимость": self.conviction,
+            "Вид наказания": self.punishment_type,
+            "Срок наказания в месяцах": self.punishment_duration
         }
         return summary_dict
