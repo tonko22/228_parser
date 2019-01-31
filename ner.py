@@ -31,6 +31,9 @@ class prigovorParser():
     # patterns to search suspended sentence
     suspended_sentence_patterns = [ "условн", " 73 " ]
 
+    # patterns to search imprisonment
+    imprisonment_patterns = [ re.compile("освобожд[е|ё]на? по отбытию срока", re.IGNORECASE) ]
+
     # pattern to search punishment
     punishment_patterns = [
         re.compile(("виновн[ымой]{2} в совершении(?:.*?)наказание(?:.*?)(один|два|три|четыре|пять|шесть|семь|восемь|девять|десять)(?:.*?)(?:год|лет)" \
@@ -136,7 +139,19 @@ class prigovorParser():
     @property
     def imprisonment(self):
         """ Отбывал ли ранее лишение свободы да/нет """
-        return
+
+        # if not convicted before, then there was no imprisonment
+        if self.conviction == False:
+            return False
+
+        # iterate all imprisonment patterns
+        for pattern in self.imprisonment_patterns:
+
+            # if matches, then there was imprisonment
+            if pattern.search(self.text) != None: return True
+
+        # no information
+        return None
     
     @property
     def drugs(self):
@@ -252,6 +267,7 @@ class prigovorParser():
             "Особый порядок": self.special_order,
             "Судимость": self.conviction,
             "Вид наказания": self.punishment_type,
-            "Срок наказания в месяцах": self.punishment_duration
+            "Срок наказания в месяцах": self.punishment_duration,
+            "Отбывал ли ранее лишение свободы": self.imprisonment
         }
         return summary_dict
