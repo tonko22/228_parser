@@ -89,7 +89,7 @@ class prigovorParser():
             match = self.defendant_full_name_pattern.search(self.text)
 
             # parse line with NamesExtractor
-            name = ner(match.group(1).strip(", \t\r\n"))
+            name = ner(match.group(0).strip(", -\t\r\n"))
 
             # if there are name matches
             if len(name.matches) > 0:
@@ -97,20 +97,29 @@ class prigovorParser():
                 # get names as json
                 defendant_dict = name.matches[0].fact.as_json
 
-                # uppercase first letter
-                defendant_dict["last"] = defendant_dict["last"][0].upper() + defendant_dict["last"][1:]
+                # if there is surname
+                if "last" in defendant_dict:
 
-                # create full name
-                full_name = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
+                    # uppercase first letter
+                    defendant_dict["last"] = defendant_dict["last"][0].upper() + defendant_dict["last"][1:]
 
-                # add to dict
-                defendants.append(full_name)
+                    # create full name
+                    full_name = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
+
+                    # add to dict
+                    defendants.append(full_name)
+
+                # if there are no matches
+                else:
+
+                    # add regexp match to dict
+                    defendants.append(match.group(1).strip(", -\t\r\n"))
 
             # if there are no matches
             else:
 
                 # add regexp match to dict
-                defendants.append(match.group(1))
+                defendants.append(match.group(1).strip(", -\t\r\n"))
         except:
             # return empty list
             return []
