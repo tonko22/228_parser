@@ -32,7 +32,22 @@ class prigovorParser():
     suspended_sentence_patterns = [ "условн", " 73 " ]
 
     # patterns to search imprisonment
-    imprisonment_patterns = [ re.compile("освобожд[е|ё]на? по отбытию срока", re.IGNORECASE) ]
+    imprisonment_patterns = [ 
+        re.compile("освобожд[е|ё]на? по отбытию срока", re.IGNORECASE),
+        re.compile("освобожд[е|ё]на? условно-досрочно", re.IGNORECASE),
+        re.compile("освобожд[е|ё]на? из колонии по постановлению", re.IGNORECASE) ]
+
+    # drugs mass patterns
+    drugs_mass_patterns = [ 
+        re.compile("\.(.*?)([\d.,]+) (килогр\w+)(.*?)\.", re.IGNORECASE), 
+        re.compile("\.(.*?)([\d.,]+) (грам\w+)(.*?)\.", re.IGNORECASE),
+        re.compile("\.(.*?)([\d.,]+) (гр\.)(.*?)\.", re.IGNORECASE)]
+
+    # drugs patterns
+    drugs_patterns = [ "гашиш", "конопля", "марихуана", "амфетамин", "экстракт маковой соломы", "являющееся производным" ]
+
+    # drugs names (must have the same number of entries as list above!)
+    drugs_names = [ "гашиш", "конопля", "марихуана", "амфетамин", "экстракт маковой соломы", "производное" ]
 
     # pattern to search punishment
     punishment_patterns = [
@@ -156,7 +171,55 @@ class prigovorParser():
     @property
     def drugs(self):
         """ Словарь {Вид наркотика: количество} """
-        return
+
+        # zero drugs dict
+        drugs = {}
+
+        # iterate all drug mass patterns
+        for pattern in self.drugs_mass_patterns:
+
+            # search for all drug mass patterns
+            matches = pattern.findall(self.text)
+
+            # if there are matches
+            if matches != None:
+
+                # iterate all matches
+                for match in matches:
+
+                    # for catching exceptions on index()
+                    try:
+
+                        # get index of drug
+                        index = [i for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in match[0]][0]
+
+                        # get name of drug
+                        name = self.drugs_names[index]
+
+                    # if no drug found
+                    except: continue
+
+                    # add drug to dict
+                    if name not in drugs:
+                        drugs[name] = match[1] + " " + match[2]
+
+        # if there are no matches
+        if not drugs:
+
+            # find drug patterns in the whole text
+            try:
+
+                # get index of drug
+                index = [i for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in self.text][0]
+
+                # add drug to dict
+                drugs[self.drugs_names[index]] = None
+
+            # if no drug found
+            except: return {}
+
+        # return drugs dictionary
+        return drugs
 
     @property
     def punishment(self):
@@ -268,6 +331,7 @@ class prigovorParser():
             "Судимость": self.conviction,
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
-            "Отбывал ли ранее лишение свободы": self.imprisonment
+            "Отбывал ли ранее лишение свободы": self.imprisonment,
+            "Наркотики": self.drugs
         }
         return summary_dict
