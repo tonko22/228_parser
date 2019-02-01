@@ -33,9 +33,9 @@ class prigovorParser():
 
     # patterns to search imprisonment
     imprisonment_patterns = [ 
-        re.compile("освобожд[е|ё]на? по отбытию срока", re.IGNORECASE),
-        re.compile("освобожд[е|ё]на? условно-досрочно", re.IGNORECASE),
-        re.compile("освобожд[е|ё]на? из колонии по постановлению", re.IGNORECASE) ]
+        re.compile("освобожд[её]на? по отбытию срока", re.IGNORECASE),
+        re.compile("освобожд[её]на? условно-досрочно", re.IGNORECASE),
+        re.compile("освобожд[её]на? из колонии по постановлению", re.IGNORECASE) ]
 
     # drugs mass patterns
     drugs_mass_patterns = [ 
@@ -69,6 +69,11 @@ class prigovorParser():
         "316 УПК", 
         "в особом порядке",
         "без проведения судебного разбирательства" ]
+
+    # patterns to search extenuating circumstances
+    extenuating_patterns = [
+        re.compile("(?:обстоятельств(?:.*?)смягчающ|смягчающ(?:.*?)обстоятельств)(?:.*?)(?:призна[её]т(?:.*?)учитывает|призна[её]т|учитывает)(?:.*?что |.*?: | )(.*)[\r\n]?", re.IGNORECASE),
+        re.compile("(.*суд признает смягчающими обстоятельствами)", re.IGNORECASE) ]
 
     def __init__(self, text):
         self.text = text
@@ -309,7 +314,21 @@ class prigovorParser():
     @property
     def extenuating_circumstances(self):
         """ Смягчающие обстоятельства """
-        return
+
+        # iterate all extenuating patterns
+        for pattern in self.extenuating_patterns:
+
+            # match pattern
+            match = pattern.search(self.text)
+
+            # if there is match
+            if match != None and len(match.groups()) > 0:
+
+                # return first match
+                return match.group(1).strip(" \r\n,.")
+
+        # nothing found
+        return None
     
     @property
     def aggravating_circumstances(self):
@@ -332,6 +351,7 @@ class prigovorParser():
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
             "Отбывал ли ранее лишение свободы": self.imprisonment,
-            "Наркотики": self.drugs
+            "Наркотики": self.drugs,
+            "Смягчающие обстоятельства": self.extenuating_circumstances
         }
         return summary_dict
