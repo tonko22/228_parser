@@ -44,10 +44,11 @@ class prigovorParser():
         re.compile("\.(.*?)([\d.,]+) (гр\.)(.*?)\.", re.IGNORECASE)]
 
     # drugs patterns
-    drugs_patterns = [ "гашиш", "конопля", "марихуана", "амфетамин", "экстракт маковой соломы", "являющееся производным" ]
-
-    # drugs names (must have the same number of entries as list above!)
-    drugs_names = [ "гашиш", "конопля", "марихуана", "амфетамин", "экстракт маковой соломы", "производное" ]
+    drugs_patterns = [ 
+        "гашиш", "конопля", "марихуана", "фторамфетамин", "амфетамин", "экстракт маковой соломы", "являющееся производным", "a-PVP", "кокаин", 
+        "героин", "6 - моноацетилморфин", "6-моноацетилморфин", "ацетилкодеин", "метадон", "МДМА", "мефедрон", "спайс", "метилэфедрон",
+        "3-метил-2 бутановой кислоты", "ACBM", "ТМСР", "AKB", "2С-В", "масло каннабиса", "AB-PINACA-CHM", "метанон", "хинолин", "карфентанил", 
+        "тарен", "пара-метоксиметамфетамин", "метиловый эфир", ]
 
     # pattern to search punishment
     punishment_patterns = [
@@ -245,11 +246,11 @@ class prigovorParser():
                     # for catching exceptions on index()
                     try:
 
-                        # get index of drug
-                        index = [i for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in match[0]][0]
-
                         # get name of drug
-                        name = self.drugs_names[index]
+                        name = [self.drugs_patterns[i] for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in match[0]][0]
+
+                        # correct name if necessary
+                        if name == "является производным": name = "производное"
 
                     # if no drug found
                     except: continue
@@ -265,10 +266,13 @@ class prigovorParser():
             try:
 
                 # get index of drug
-                index = [i for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in self.text][0]
+                name = [self.drugs_patterns[i] for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in self.text][0]
+
+                # correct name if necessary
+                if name == "является производным": name = "производное"
 
                 # add drug to dict
-                drugs[self.drugs_names[index]] = None
+                drugs[name] = None
 
             # if no drug found
             except: return {}
@@ -394,7 +398,7 @@ class prigovorParser():
             if any(e in self.text for e in patterns): aggravating_circumstances.append(name)
 
         # return aggravating circumstances joined by comma
-        return ",".join(aggravating_circumstances)
+        return ",".join(aggravating_circumstances) if aggravating_circumstances else None
     
     @property
     def special_order(self):
