@@ -30,7 +30,7 @@ def write_csv(result: Dict, file_path="result.csv"):
                       'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
                       'Отягчающие обстоятельства']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        if not os.path.isfile(filename):
+        if not os.path.isfile(file_path):
             writer.writeheader()
         writer.writerow(result)
     
