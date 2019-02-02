@@ -23,7 +23,7 @@ class ParsingHandler():
         
     def extract_text(self, filename):
         """ Format detection and text extraction as a string """
-        target_path = self.target_dir + "/" + filename
+        target_path = self.args.target_dir + "/" + filename
 
         if filename.endswith(".txt"):
             with open(target_path, encoding='utf-8') as file:
