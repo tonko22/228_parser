@@ -62,7 +62,7 @@ class ParsingHandler():
     def process_files(self):
         for filename in os.listdir(self.args.target_dir):
             try:
-                text = extract_text(filename)
+                text = self.extract_text(filename)
                 ex = EntityExtractor(text)
                 self.write_csv(ex.summary_dict)
                 if args.log_file:
