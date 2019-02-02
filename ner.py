@@ -238,7 +238,7 @@ class prigovorParser():
             matches = pattern.findall(self.text)
 
             # if there are matches
-            if matches != None:
+            if matches:
 
                 # iterate all matches
                 for match in matches:
