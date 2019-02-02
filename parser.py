@@ -46,7 +46,7 @@ class ParsingHandler():
                           'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
                           'Отягчающие обстоятельства']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            if file_exists:
+            if not file_exists:
                 writer.writeheader()
             writer.writerow(result)
         
