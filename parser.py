@@ -5,6 +5,7 @@ import os
 import docx
 import logging 
 from ner import prigovorParser
+from export import write_csv
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(funcName)s %(message)s')
@@ -24,6 +25,7 @@ if __name__=="__main__":
     parser.add_argument('--target_dir', default="test_txt")
     args = parser.parse_args()
     
+    skips = []
     for filename in os.listdir(args.target_dir):
         if filename.endswith(".txt"):
             target_format = "txt"
@@ -34,7 +36,8 @@ if __name__=="__main__":
             continue
         try: 
             text = txt_get_text(filename, target_format)
-            p = prigovorParser(text)
-            logger.info("Parsing result for {}:\n{}".format(filename, p.summary_dict))
+            parser = prigovorParser(text)
+            logger.info("Parsing result for {}:\n{}".format(filename, parser.summary_dict))
+            write_csv(parser.summary_dict)
         except BaseException as e:
             logger.error("Error while parsing {}: {}, skipping file".format(filename, e))
