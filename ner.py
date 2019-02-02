@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(
 der = DatesExtractor()
 ner = NamesExtractor()
 
-class prigovorParser():
+class PrigovorParser():
     """ All methods return parsed values in json format """
     intro_limit = 200 # first symbols to search for sentence_date
 
