@@ -40,8 +40,8 @@ class ParsingHandler():
     def write_csv(self, result: Dict):
         """ If csvfile is a file object, it should be opened with newline=''
         """
-        file_exists = os.path.isfile(file_path)        
-        with open(file_path, 'a', newline='') as csvfile:
+        file_exists = os.path.isfile(self.args.csv_path)        
+        with open(self.args.csv_path, 'a', newline='') as csvfile:
             fieldnames = ['Суд', 'Дата приговора', 'ФИО', 'Смягчающие обстоятельства', 'Вид наказания', 'Особый порядок',
                           'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
                           'Отягчающие обстоятельства']
@@ -50,28 +50,35 @@ class ParsingHandler():
                 writer.writeheader()
             writer.writerow(result)
         
-    def write_error_log(error_dict):
-        file_exists = os.path.isfile(self.args.log_file)        
-        with open(self.args.log_file, 'a', newline='') as csvfile:
+    def write_error_log(self, error_dict):
+        file_exists = os.path.isfile(self.args.log_path)        
+        with open(self.args.log_path, 'a', newline='') as csvfile:
             fieldnames = ['filename', "error"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            if file_exists:
+            if not file_exists:
                 writer.writeheader()
             writer.writerow(error_dict)
             
     def process_files(self):
-        for filename in os.listdir(self.args.target_dir):
+        filenames = os.listdir(self.args.target_dir)
+        total = len(filenames)
+        for n, filename in enumerate(filenames):
+            logger.info("Processing {}, ({}/{})".format(filename, n, total))
             try:
                 text = self.extract_text(filename)
                 ex = EntityExtractor(text)
                 self.write_csv(ex.summary_dict)
-                if args.log_file:
-                    self.write_erorr_log()
                 self.succ_counter += 1
             except BaseException as e:
                 self.error_counter += 1
-                logger.error("Error while processing {} file: {}".format())
-                self.write_error_log({filename: str(e)+str(e.args)})
+                error_dict = {
+                    "filename": filename,
+                    "error": str(e)+str(e.args)
+                }
+                logger.error("Error while processing {}".format(error_dict))
+                if self.args.log_path:
+                    self.write_error_log(error_dict)
+                
      
     def report(self):
         self.logger.info(
@@ -82,7 +89,7 @@ class ParsingHandler():
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Извлечение атрибутов приговоров из указанной папки в .csv файл. Допустимые форматы: .txt, .doc, docx')
     parser.add_argument('--target_dir', default="test_txt")
-    parser.add_argument('--dest_file', default="result.csv")
-    parser.add_argument('--log_file', default="") # acts as false with if
+    parser.add_argument('--csv_path', default="result.csv")
+    parser.add_argument('--log_path', default="") # acts as false with if
     args = parser.parse_args()
     ParsingHandler(args)
