@@ -428,7 +428,7 @@ class prigovorParser():
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
             "Отбывал ли ранее лишение свободы": self.imprisonment,
-            "Наркотики": self.drugs,
+            "Наркотики": {k: self.normalize_value(v) for k, v in self.drugs.items()},
             "Смягчающие обстоятельства": self.extenuating_circumstances,
             "Отягчающие обстоятельства": self.aggravating_circumstances
         }
