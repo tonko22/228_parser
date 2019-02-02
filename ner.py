@@ -194,12 +194,11 @@ class prigovorParser():
 
                 # add regexp match to dict
                 defendants.append(match.group(1).strip(", -\t\r\n"))
-        except:
-            # return empty list
-            return []
+        except BaseException as e:
+            logger.warning("Could not parse defendatns: {}".format(e))
 
         # return defendants list
-        return defendants
+        return ", ".join(defendants)
     
     @property
     def conviction(self):
@@ -277,7 +276,6 @@ class prigovorParser():
             # if no drug found
             except: return {}
 
-        # return drugs dictionary
         drug_stirng = ""
         for k, v in drugs.items():
             drug_stirng += "{}: {}\n".format(k, self.normalize_value(v))
