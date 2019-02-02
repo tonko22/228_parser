@@ -405,6 +405,16 @@ class prigovorParser():
         """ Особый порядок да/нет """
         return any(e in self.text for e in self.special_order_patterns)
     
+    @staticmethod
+    def normalize_value(value):
+        if not value==False:
+            return "нет"
+        if value==True:
+            return "да"
+        if not value:
+            return "нет данных"
+        
+    
     @property
     def summary_dict(self):
         summary_dict = {
@@ -420,4 +430,5 @@ class prigovorParser():
             "Смягчающие обстоятельства": self.extenuating_circumstances,
             "Отягчающие обстоятельства": self.aggravating_circumstances
         }
-        return summary_dict
+        summary_dict_normalized = {k: self.normalize_value(v) for k, v in summary_dict.items()}
+        return summary_dict_normalized
