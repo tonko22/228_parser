@@ -2,60 +2,39 @@ import glob
 import argparse
 import sys
 import os
-import io
 import docx
-
+import logging 
 from ner import prigovorParser
 
-def docx_get_text(filename):
-    """ Получение текста из файла docx """
-    try:
+logger = logging.getLogger()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(funcName)s %(message)s')
+
+
+def extract_text(filename, target_format="txt"):
+    """ Получение текста из файла """
+    if target_format=="doc"
         doc = docx.Document(filename)
         return '\n'.join([para.text for para in doc.paragraphs])
     except:
-        # open file and read contents
-        with io.open(filename, encoding='utf-8') as file:
-            text = file.read()
-
-        # return text
-        return text
-
-def txt_get_text(filename):
-    """ Получение содержимого текстового файла """
-
-    # open file and read contents
-    with io.open(filename, encoding='utf-8') as file:
-        text = file.read()
-
-    # return text
-    return text
-
-def is_valid_doc(filename):
-    return True
+        with open(filename, encoding='utf-8') as file:
+            return file.read() 
     
 if __name__=="__main__":
-
-    # iterate all files in directory
-    for filename in os.listdir("."):
-
-        # if it is text file
+    parser = argparse.ArgumentParser(description='Извлечение атрибутов приговора в .csv файл')
+    parser.add_argument('--target_dir', default="test_txt")
+    args = parser.parse_args()
+    
+    for filename in os.listdir(args.target_dir):
         if filename.endswith(".txt"):
-           
-            # get text file
-            text = txt_get_text(filename)
-
-        # if it is docx file
-        elif filename.endswith(".doc"):
-
-            # get docx content
-            text = docx_get_text(filename)
-
-        # no way, continue search
-        else: continue
-
-        # parse text
-        p = prigovorParser(text)
-
-        # print entities
-        print(p.summary_dict)
-        # p.summary_dict
+            target_format = "txt"
+        if filename.endswith(".doc") or filename.endswith(".docx"):
+            target_format = "doc"
+        else:
+            logger.critical("Target file format is not supported: {}, skipping file".format(filename))
+            continue
+        try: 
+            text = txt_get_text(filename, target_format)
+            p = prigovorParser(text)
+            logger.info("Parsing result for {}:\n{}".format(filename, p.summary_dict))
+        except BaseException as e:
+            logger.error("Error while parsing {}: {}, skipping file".format(filename, e))
