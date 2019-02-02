@@ -25,12 +25,16 @@ def extract_text(filename, target_format="txt"):
 def write_csv(result: Dict, file_path="result.csv"):
     """ If csvfile is a file object, it should be opened with newline=''
     """
+    write_header = False
+    if not os.path.isfile(file_path):
+        write_header = True
+            
     with open(file_path, 'a', newline='') as csvfile:
         fieldnames = ['Суд', 'Дата приговора', 'ФИО', 'Смягчающие обстоятельства', 'Вид наказания', 'Особый порядок',
                       'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
                       'Отягчающие обстоятельства']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        if not os.path.isfile(file_path):
+        if write_header:
             writer.writeheader()
         writer.writerow(result)
     
