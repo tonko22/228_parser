@@ -278,7 +278,10 @@ class prigovorParser():
             except: return {}
 
         # return drugs dictionary
-        return drugs
+        drug_stirng = ""
+        for k, v in drugs.items():
+            drug_stirng += "{}: {}\n".format(k, self.normalize_value(v))
+        return drug_stirng
 
     @property
     def punishment(self):
@@ -428,7 +431,7 @@ class prigovorParser():
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
             "Отбывал ли ранее лишение свободы": self.imprisonment,
-            "Наркотики": {k: self.normalize_value(v) for k, v in self.drugs.items()},
+            "Наркотики": self.drugs,
             "Смягчающие обстоятельства": self.extenuating_circumstances,
             "Отягчающие обстоятельства": self.aggravating_circumstances
         }
