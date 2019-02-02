@@ -407,12 +407,14 @@ class prigovorParser():
     
     @staticmethod
     def normalize_value(value):
-        if value==True:
-            return "да"
         if value==False:
             return "нет"
-        if not value:
+        if value==True:
+            return "да"
+        if value is None:
             return "нет данных"
+        else:
+            return value
         
     
     @property
