@@ -1,10 +1,9 @@
-import glob
 import argparse
 import sys
 import os
 import docx
 import logging 
-from ner import prigovorParser
+from ner import PrigovorParser
 import csv
 from typing import Dict
 
@@ -58,7 +57,7 @@ if __name__=="__main__":
 
         try: 
             text = extract_text(target_path, target_format)
-            parser = prigovorParser(text)
+            parser = PrigovorParser(text)
             logger.info("Parsing result for {}:\n{}".format(filename, parser.summary_dict))
             write_csv(parser.summary_dict)
         except BaseException as e:
