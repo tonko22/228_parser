@@ -278,7 +278,7 @@ class prigovorParser():
 
         drug_stirng = ""
         for k, v in drugs.items():
-            drug_stirng += "{}: {}\n".format(k, self.normalize_value(v))
+            drug_stirng += "{}: {}; ".format(k, self.normalize_value(v))
         return drug_stirng
 
     @property
