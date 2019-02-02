@@ -38,6 +38,7 @@ def write_csv(result: Dict, file_path="result.csv"):
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Извлечение атрибутов приговора в .csv файл')
     parser.add_argument('--target_dir', default="test_txt")
+    parser.add_argument('--dest_dir', default="result.csv")
     args = parser.parse_args()
     
     skips_n_reasons = {}
