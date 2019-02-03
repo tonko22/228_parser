@@ -2,7 +2,10 @@ import os
 from bs4 import BeautifulSoup
 import requests
 import re
+import logging
 
+logger = logging.getLogger()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(funcName)s %(message)s')
 
 def validate_url(url):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
@@ -10,24 +13,19 @@ def validate_url(url):
     return "приговор" in page.text.lower()
 
 
-def get_link(site, num):
-    return "https://{}/modules.php?name=sud_delo&srv_num=1&name_op=doc&number={}&delo_id=1540006&new=0&text_number=1".format(site, num)
+def get_link(filename):
+    url, prigovor_id = get_court_and_id(filename)
+    return "https://{}/modules.php?name=sud_delo&srv_num=1&name_op=doc&number={}&delo_id=1540006&new=0&text_number=1".format(url, prigovor_id)
 
 def get_court_and_id(filename):
-    try:
-        site = re.search(r"([\w\.])*\.sudrf\.ru", filename).group(0) # characters and dots ending with .sudrf.ru
-    except:
-        site = None
-    try:
-        prigovor_id = re.search(r"\d+(?=\.)", filename).group(0) # any number of digits followed by a dot
-    except:
-        prigovor_id = None
-        
-    return site, prigovor_id
+    url = re.search(r"([\w\.])*\.sudrf\.ru", filename).group(0) # characters and dots ending with .sudrf.ru
+    prigovor_id = re.search(r"\d+(?=\.)", filename).group(0) # any number of digits followed by a dot 
+    return url, prigovor_id
     
     
 def get_court_name(filename):
     url, _ = get_court_and_id(filename)
+    logger.info("parsed from filename url: {}".format(url))
     if url:
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
         page = requests.get("http://" + url, headers=headers).text
