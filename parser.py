@@ -43,7 +43,7 @@ class ParsingHandler():
         file_exists = os.path.isfile(self.args.csv_path)        
         with open(self.args.csv_path, 'a', newline='') as csvfile:
             fieldnames = ['Суд', 'Дата приговора', 'ФИО', 'Смягчающие обстоятельства', 'Вид наказания', 'Особый порядок',
-                          'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
+                          'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Главный наркотик', 'Размер', 'Срок наказания в месяцах',
                           'Отягчающие обстоятельства']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if not file_exists:

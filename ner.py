@@ -47,8 +47,8 @@ class EntityExtractor():
      "гашиш" : [2,25,10000] 
     , "конопля": [6,100,100000] 
     , "марихуана": [6,100,100000] 
-    , "метамфетамин ": [0.3,2.5,500] 
-    , "первитин ": [0.3,2.5,500] 
+    , "метамфетамин": [0.3,2.5,500] 
+    , "первитин": [0.3,2.5,500] 
     , "амфетамин": [0.2,1,200]
     , "N-диметиламфетамин" : [0.5,2.5,500]
     , "экстракт маковой соломы": [1,5,500] 
@@ -75,9 +75,9 @@ class EntityExtractor():
     , "2c-b": [0.01,0.5,10] 
     , "масло каннабиса": [0.4,5,1000]
     , "гашишное масло": [0.4,5,1000]
-    , "jwh-***": [0.05,0.25,500] 
-    , "*хинолин*": [0.05,0.25,500]
-    , "*индол*" : [0.05,0.25,500]
+    , "jwh": [0.05,0.25,500] 
+    , "хинолин": [0.05,0.25,500]
+    , "индол" : [0.05,0.25,500]
     , "карфентанил": [0.002,0.01,2] 
     , "метиловый эфир": [0.05,0.25,500]
     , "псилоцибин": [0.05,0.25,50] 
@@ -91,7 +91,7 @@ class EntityExtractor():
     , "мескалин" : [0.5,2.5,500] 
 }
 
-    drugs_patterns = drugs_sizes.keys()
+    drugs_patterns = list(drugs_sizes.keys())
 
     # pattern to search punishment
     punishment_patterns = [
@@ -339,9 +339,13 @@ class EntityExtractor():
             # if no drug found
             except: return ""
 
-        drug_stirng = ';'.join(['{} : {}'.format(k, v) for k, v in drugs.items()])
+        # drug_string = ""
+        # for k, v in drugs.items():
+        #     drug_string += "{}: {}; ".format(k, self.normalize_value(v))
+        # return drug_string
+        drug_string = '; '.join(k+': '+self.normalize_value(v) for k, v in drugs.items())
 
-        return drug_stirng
+        return drug_string
 
 
     @property
@@ -359,21 +363,25 @@ class EntityExtractor():
         for pair in drugs_pairs:
             try:
                 drug, size = pair.split(":")
+
                 mass = size.split()[0].strip()
-                if mass.isdigit():
-                    drugs[drug] = int(mass)
+                mass = mass.replace(" ", "")
+                mass = mass.replace(",", ".")
+
+                drugs[drug] = float(mass)
+
             except:
                 pass
 
         # сюда запишем размеры наркотиков относительно интервалов крупности размеров
         found_sizes = {} 
         
-        for drug_name, drug_match in drugs.items():
+        for drug_name, drug_mass in drugs.items():
 
             if drug_mass > 0:
 
                 # из словарика размеров получаем лист [значительный, крупный, особо крупный]
-                sizes_list = drugs_sizes[drug_name] 
+                sizes_list = self.drugs_sizes[drug_name] 
 
                 # значительный - какая часть от крупного, принимает значения (0 - 1)
                 if drug_mass < sizes_list[1]: 
