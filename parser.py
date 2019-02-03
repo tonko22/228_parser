@@ -67,6 +67,8 @@ class ParsingHandler():
             try:
                 text = self.extract_text(filename)
                 ex = EntityExtractor(text)
+                if ex.errors:
+                    self.write_error_log({filename: ex.errors})
                 self.write_csv(ex.summary_dict)
                 self.succ_counter += 1
             except BaseException as e:

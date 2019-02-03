@@ -129,6 +129,7 @@ class EntityExtractor():
     def __init__(self, text):
         self.text = text
         self.paragraphs = self.text.split('\n')
+        self.errors = []
         
     @property
     def court_name(self):
@@ -137,19 +138,22 @@ class EntityExtractor():
             match = self.court_name_pattern.search(self.text)
             return match.group(1)
         except BaseException as e:
-            logger.warning("Не удалось извлечь название суда")
+            logger.critical("Не удалось извлечь название суда")
         
     @property
     def sentence_date(self):
         """ Дата приговора 
         Ищется первая дата в первых 200 символах
         """
-        date_matches = der(self.text[:self.intro_limit])
-        facts = [_.fact.as_json for _ in date_matches]
-        if len(date_matches.as_json) > 0:
-            result_dict = date_matches.as_json[0]["fact"]
-            return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
-
+        try:
+            date_matches = der(self.text[:self.intro_limit])
+            facts = [_.fact.as_json for _ in date_matches]
+            if len(date_matches.as_json) > 0:
+                result_dict = date_matches.as_json[0]["fact"]
+                return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
+        except BaseException as e:
+            logger.critical("Could not extract sentence_date: {}".format(e))
+            
     @property
     def defendants(self):
         """ Фио подсудимых """
@@ -194,7 +198,9 @@ class EntityExtractor():
                 # add regexp match to dict
                 defendants.append(match.group(1).strip(", -\t\r\n"))
         except BaseException as e:
-            logger.warning("Could not parse defendatns: {}".format(e))
+            err_msg = "Could not extract defendatns: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
 
         # return defendants list
         return ", ".join(defendants)
@@ -202,25 +208,31 @@ class EntityExtractor():
     @property
     def conviction(self):
         """ Судимость да/нет """
-        return True if any(e in self.text for e in self.conviction_patterns) else \
-            False if any(e in self.text for e in self.non_conviction_patterns) else None
+        try:
+            return True if any(e in self.text for e in self.conviction_patterns) else \
+                False if any(e in self.text for e in self.non_conviction_patterns) else None
+        except BaseException as e:
+            err_msg = "Could not extract conviction: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
+            
     
     @property
     def imprisonment(self):
         """ Отбывал ли ранее лишение свободы да/нет """
-
         # if not convicted before, then there was no imprisonment
         if self.conviction == False:
             return False
+        try:
+            # iterate all imprisonment patterns
+            for pattern in self.imprisonment_patterns:
 
-        # iterate all imprisonment patterns
-        for pattern in self.imprisonment_patterns:
-
-            # if matches, then there was imprisonment
-            if pattern.search(self.text) != None: return True
-
-        # no information
-        return None
+                # if matches, then there was imprisonment
+                if pattern.search(self.text) != None: return True
+        except BaseException as e:
+            err_msg = "Could not extract imprisonment: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
     
     @property
     def drugs(self):
@@ -368,37 +380,42 @@ class EntityExtractor():
     @property
     def extenuating_circumstances(self):
         """ Смягчающие обстоятельства """
+        try:
+            # iterate all extenuating patterns
+            for pattern in self.extenuating_patterns:
 
-        # iterate all extenuating patterns
-        for pattern in self.extenuating_patterns:
+                # match pattern
+                match = pattern.search(self.text)
 
-            # match pattern
-            match = pattern.search(self.text)
+                # if there is match
+                if match != None and len(match.groups()) > 0:
 
-            # if there is match
-            if match != None and len(match.groups()) > 0:
-
-                # return first match
-                return match.group(1).strip(" \r\n,.")
-
-        # nothing found
-        return None
+                    # return first match
+                    return match.group(1).strip(" \r\n,.")
+        except BaseException as e:        
+            err_msg = "Could not extract extenuating_circumstances: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
     
     @property
     def aggravating_circumstances(self):
         """ Отягчающие обстоятельства """
+        try:
+            # create zero list
+            aggravating_circumstances = []
 
-        # create zero list
-        aggravating_circumstances = []
+            # enumerate all aggravating patterns
+            for name, patterns in self.aggravating_patterns.items():
 
-        # enumerate all aggravating patterns
-        for name, patterns in self.aggravating_patterns.items():
+                # if there is match, add name
+                if any(e in self.text for e in patterns): aggravating_circumstances.append(name)
 
-            # if there is match, add name
-            if any(e in self.text for e in patterns): aggravating_circumstances.append(name)
-
-        # return aggravating circumstances joined by comma
-        return ",".join(aggravating_circumstances) if aggravating_circumstances else None
+            # return aggravating circumstances joined by comma
+            return ",".join(aggravating_circumstances) if aggravating_circumstances else None
+        except BaseException as e:        
+            err_msg = "Could not extract aggravating_circumstances: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
     
     @property
     def special_order(self):
