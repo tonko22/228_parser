@@ -7,11 +7,10 @@ import logging
 logger = logging.getLogger()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(funcName)s %(message)s')
 
-
 der = DatesExtractor()
 ner = NamesExtractor()
 
-class PrigovorParser():
+class EntityExtractor():
     """ All methods return parsed values in json format """
     intro_limit = 200 # first symbols to search for sentence_date
 
@@ -44,11 +43,54 @@ class PrigovorParser():
         re.compile("\.(.*?)([\d.,]+) (гр\.)(.*?)\.", re.IGNORECASE)]
 
     # drugs patterns
-    drugs_patterns = [ 
-        "гашиш", "конопля", "марихуана", "пара-метоксиметамфетамин", "фторамфетамин", "амфетамин", "экстракт маковой соломы", 
-        "являющееся производным", "a-PVP", "кокаин", "героин", "6 - моноацетилморфин", "6-моноацетилморфин", "ацетилкодеин", "метадон", "МДМА", 
-        "мефедрон", "спайс", "метилэфедрон", "3-метил-2 бутановой кислоты", "ACBM", "ТМСР", "AKB", "2С-В", "масло каннабиса", "AB-PINACA-CHM", 
-        "метанон", "хинолин", "карфентанил", "тарен", "метиловый эфир" ]
+    drugs_sizes = { 
+     "гашиш" : [2,25,10000] 
+    , "конопля": [6,100,100000] 
+    , "марихуана": [6,100,100000] 
+    , "метамфетамин ": [0.3,2.5,500] 
+    , "первитин ": [0.3,2.5,500] 
+    , "амфетамин": [0.2,1,200]
+    , "N-диметиламфетамин" : [0.5,2.5,500]
+    , "экстракт маковой соломы": [1,5,500] 
+    , "являющееся производным": [0,100,200] 
+    , "метилендиоксипировалерон" : [0.6,3.0,600]
+    , "альфа-пирролидиновалерофенон": [0.05,0.25,500] 
+    , "кокаин" : [0.5,5,1500] 
+    , "героин" : [0.5,2.5,1000]
+    , "3 - моноацетилморфин" : [0.5,2.5,1000]
+    , "3-моноацетилморфин" : [0.5,2.5,1000]
+    , "6-моноацетилморфин": [0.5,2.5,1000] 
+    , "6-моноацетилморфин": [0.5,2.5,1000] 
+    , "морфин": [0.5,2.5,500] 
+    , "опий" : [1,25,5000]
+    , "маковая солома" : [20,500,100000] 
+    , "ацетилкодеин": [0.5,2.5,1000] 
+    , "метадон": [0.5,2.5,1000] 
+    , "МДМА": [0.6,3.0,600] 
+    , "МДА": [0.6,3.0,600] 
+    , "мефедрон": [0.2,2.5,500]  
+    , "N-метилэфедрон": [0.2,1,200] 
+    , "3-MeO-MPC": [0.05,0.25,500] 
+    , "тетраметилциклопропил": [0.05,0.25,500] 
+    , "2C-B": [0.01,0.5,10] 
+    , "масло каннабиса": [0.4,5,1000]
+    , "гашишное масло": [0.4,5,1000]
+    , "JWH-***": [0.05,0.25,500] 
+    , "*хинолин*": [0.05,0.25,500]
+    , "*индол*" : [0.05,0.25,500]
+    , "карфентанил": [0.002,0.01,2] 
+    , "метиловый эфир": [0.05,0.25,500]
+    , "псилоцибин": [0.05,0.25,50] 
+    , "псилоцин": [0.05,0.25,50] 
+    , "ДМТ" : [0.5,2.5,500] 
+    , "диметилтриптамин": [0.5,2.5,500] 
+    , "ЛСД": [0.0001,0.005,0.1] 
+    , "NBOMe": [0.2,1.0,200] 
+    , "ДОБ" : [0.01,0.05,10] 
+    , "Броламфетамин" : [0.01,0.05,10] 
+    , "мескалин" : [0.5,2.5,500] 
+}
+    drugs_patterns = drugs_sizes.keys()
 
     # pattern to search punishment
     punishment_patterns = [
@@ -127,8 +169,14 @@ class PrigovorParser():
             [ "совершение преступления в состоянии опьянения" ]
         }
 
+    general_drug_size_patterns = {
+        "Особо крупный" : "в особо крупном размере",
+        "Крупный" : "в крупном размере",
+        "значительный" : "в значительном размере"
+    }
+
     def __init__(self, text):
-        self.text = text
+        self.text = text.lower()
         self.paragraphs = self.text.split('\n')
         
     @property
@@ -137,7 +185,7 @@ class PrigovorParser():
         try:
             match = self.court_name_pattern.search(self.text)
             return match.group(1)
-        except:
+        except BaseException as e:
             logger.warning("Не удалось извлечь название суда")
         
     @property
@@ -229,6 +277,8 @@ class PrigovorParser():
 
         # zero drugs dict
         drugs = {}
+        drug_string = ""
+        largest_drug = ""
 
         # iterate all drug mass patterns
         for pattern in self.drugs_mass_patterns:
@@ -274,12 +324,58 @@ class PrigovorParser():
                 drugs[name] = None
 
             # if no drug found
-            except: return {}
+            except: return {}, ""
 
-        drug_stirng = ""
+        found_sizes = {}
+        
+        # крупнейший наркотик
+
+        for drug_name, drug_mass in drugs.items():
+
+            if drug_mass > 0:
+
+                sizes_list = drugs_sizes[drug_name]
+
+                if drug_mass < sizes_list[1]: 
+                    found_sizes[drug_name] = drug_mass/sizes_list[1] # значительный - какая часть от крупного, принимает значения (0 - 1)
+
+                elif drug_mass >= sizes_list[2]: 
+                    found_sizes[drug_name] = 2 + drug_mass/sizes_list[2] # особо крупный - во сколько раз больше крупного + 2, чтобы было больше всего, принимает значения  > 2
+
+                else: 
+                    found_sizes[drug_name] = 1 + drug_mass/sizes_list[2]  # крупный - какая часть от особо крупного + 1, чтобы было больше значительного, принимает значения  (1 - 2)
+
+
+        if len(found_sizes) > 0:
+            largest_drug = max(found_sizes, key = lambda x: found_sizes[x])
+        else:
+            largest_drug = "; ".join(drugs.keys()) # если ничего не нашли, то перечисляем все через ;
+        
         for k, v in drugs.items():
-            drug_stirng += "{}: {}; ".format(k, self.normalize_value(v))
-        return drug_stirng
+            drug_string += "{}: {}; ".format(k, self.normalize_value(v))
+
+        return drug_string, largest_drug
+
+
+    @property
+    def drug_string(self):
+        drug_string, largest_drug = self.drugs
+        return drug_string
+
+
+    @property
+    def largest_drug(self):
+        drug_string, largest_drug = self.drugs
+        return largest_drug
+
+
+    @property
+    def general_drug_size(self):
+        """ Ищет наибольший размер (особо крупный -> крупный -> значительный), указанный в тексте приговора"""
+        for drug_size_title, drug_size in self.general_drug_size_patterns.items():
+            if drug_size in self.text:
+                return drug_size_title
+    
 
     @property
     def punishment(self):
@@ -345,6 +441,9 @@ class PrigovorParser():
 
         # return type and duration
         return punishment_type, punishment_duration
+
+    
+    
     
     @property
     def punishment_type(self):
@@ -429,7 +528,9 @@ class PrigovorParser():
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
             "Отбывал ли ранее лишение свободы": self.imprisonment,
-            "Наркотики": self.drugs,
+            "Наркотики": self.drug_string,
+            "Главный наркотик": self.largest_drug,
+            "Размер": self.general_drug_size,
             "Смягчающие обстоятельства": self.extenuating_circumstances,
             "Отягчающие обстоятельства": self.aggravating_circumstances
         }
