@@ -81,7 +81,7 @@ class ParsingHandler():
                 
      
     def report(self):
-        self.logger.info(
+        logger.info(
             "Files processed: {}, errors(skipped): {}".format(
                 self.succ_counter, self.error_counter))
     
