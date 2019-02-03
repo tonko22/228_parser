@@ -2,6 +2,7 @@ import re
 import json
 from natasha import NamesExtractor, DatesExtractor
 from natasha.markup import format_json
+import html_extract
 import logging 
 
 logger = logging.getLogger()
@@ -15,7 +16,8 @@ class EntityExtractor():
     intro_limit = 200 # first symbols to search for sentence_date
 
     # pattern to search court name
-    court_name_pattern = re.compile("\s+(.*) в составе")
+    # court_name_pattern = re.compile("\s+(.*) в составе")  # old
+    court_name_pattern = re.compile("\s+(.*)[ \n]в составе", re.MULTILINE)
 
     # pattern to search defendant's name
     defendant_full_name_pattern = re.compile("подсудим[огй]{2,3} (.*)[ ,\r\n]", re.MULTILINE)
@@ -126,11 +128,22 @@ class EntityExtractor():
             [ "совершение преступления в состоянии опьянения" ]
         }
 
-    def __init__(self, text):
+    def __init__(self, filename, text):
+        self.filename = filename
+        self.court_prefix = self.filename.split("_")[0]
         self.text = text
         self.paragraphs = self.text.split('\n')
         self.errors = []
         
+    @property
+    def link(self):
+        try:
+            return html_extract.get_link(self.filename)
+        except BaseException as e:
+            msg = "Could not parse link from filename {}".format(self.filename)
+            errors.append(msg)
+            logger.critical(msg)
+            
     @property
     def court_name(self):
         """ Суд, выносящий приговор """
@@ -138,15 +151,25 @@ class EntityExtractor():
             match = self.court_name_pattern.search(self.text)
             return match.group(1)
         except BaseException as e:
-            logger.critical("Не удалось извлечь название суда")
-        
+            error_msg = "Could not extract court_name, trying to parse from filename"
+            logger.error(error_msg)
+            try:
+                parsed_name = html_extract.get_court_name(self.filename)
+                logger.info("Filename parsed successfully: {}".format(parsed_name))
+                return parsed_name
+            except BaseException as e:
+                err_msg = "Could not extract cour_name from filename: {}".format(e)
+                logger.error(error_msg)
+                self.errors.append(err_msg)
+            
     @property
     def sentence_date(self):
         """ Дата приговора 
         Ищется первая дата в первых 200 символах
         """
         try:
-            date_matches = der(self.text[:self.intro_limit])
+            #date_matches = der(self.text[:self.intro_limit])
+            date_matches = der(self.text[:self.intro_limit].replace("«", "").replace("»", ""))
             facts = [_.fact.as_json for _ in date_matches]
             if len(date_matches.as_json) > 0:
                 result_dict = date_matches.as_json[0]["fact"]
@@ -437,6 +460,8 @@ class EntityExtractor():
     @property
     def summary_dict(self):
         summary_dict = {
+            "Ссылка": self.link,
+            "Файл": self.filename,
             "Суд": self.court_name,
             "Дата приговора": self.sentence_date,
             "ФИО": self.defendants,
