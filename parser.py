@@ -4,10 +4,6 @@ import os
 import docx
 import logging 
 from ner import EntityExtractor
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/uleetochka
 import csv
 from typing import Dict
 
@@ -70,25 +66,27 @@ class ParsingHandler():
         for n, filename in enumerate(filenames):
             logger.info("Processing {}, ({}/{})".format(filename, n, self.total_files))
             
-            error_dict = {"filename": filename,
-            "extractor_errors": None,
-            "ner_errors": None}
+            error_dict = {
+                "filename": filename,
+                "extractor_errors": None,
+                "ner_errors": None
+            }
             
             try:
                 text = self.extract_text(filename)
             except BaseException as e:
                 logger.error("Error while extracting {}, skipping".format(e))
-                error_dict["extractor_errors"] = e
+                error_dict["extractor_errors"] = str(e)
                 self.skipped_files += 1
                 continue
                     
             ex = EntityExtractor(filename, text)
-            if ex.errors:
-                error_dict["ner_errors"] = e
-                
             self.write_result_csv(ex.summary_dict)
+            if len(ex.errors)>0:
+                error_dict["ner_errors"] = ex.errors    
             
             if self.args.write_logs:
+                if error_dict["extractor_errors"] or error_dict["ner_errors"]:
                     self.write_error_log(error_dict)
                     
     def report(self):

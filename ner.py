@@ -190,7 +190,7 @@ class EntityExtractor():
             return html_extract.get_link(self.filename)
         except BaseException as e:
             msg = "Could not parse link from filename {}".format(self.filename)
-            errors.append(msg)
+            self.errors.append(msg)
             logger.critical(msg)
             
     @property
@@ -224,7 +224,9 @@ class EntityExtractor():
                 result_dict = date_matches.as_json[0]["fact"]
                 return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
         except BaseException as e:
-            logger.critical("Could not extract sentence_date: {}".format(e))
+            err_msg = "Could not extract sentence_date: {}".format(e)
+            logger.critical(err_msg)
+            self.errors.append(err_msg)
             
     @property
     def defendants(self):
