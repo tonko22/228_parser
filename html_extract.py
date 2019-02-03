@@ -12,7 +12,6 @@ def validate_url(url):
     page = requests.get(url, headers=headers)
     return "приговор" in page.text.lower()
 
-
 def get_link(filename):
     url, prigovor_id = get_court_and_id(filename)
     return "https://{}/modules.php?name=sud_delo&srv_num=1&name_op=doc&number={}&delo_id=1540006&new=0&text_number=1".format(url, prigovor_id)
@@ -21,8 +20,7 @@ def get_court_and_id(filename):
     url = re.search(r"([\w\.])*\.sudrf\.ru", filename).group(0) # characters and dots ending with .sudrf.ru
     prigovor_id = re.search(r"\d+(?=\.)", filename).group(0) # any number of digits followed by a dot 
     return url, prigovor_id
-    
-    
+   
 def get_court_name(filename):
     url, _ = get_court_and_id(filename)
     logger.info("parsed from filename url: {}".format(url))
@@ -30,10 +28,8 @@ def get_court_name(filename):
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
         page = requests.get("http://" + url, headers=headers).text
         soup = BeautifulSoup(page, "html.parser")
-
         return soup.find("title").text
 
-    
 def html_extract(filename): 
 
     '''

@@ -4,7 +4,10 @@ import os
 import docx
 import logging 
 from ner import EntityExtractor
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/uleetochka
 import csv
 from typing import Dict
 
@@ -13,11 +16,12 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(
 
 class ParsingHandler():
     log_path = "log.csv"
+
     def __init__(self, args):
         self.skips_n_reasons = {}
         self.args = args
         
-        self.skipped_files = 0
+        self.skipped_files = 0      
         
         self.process_files()
         self.report()
@@ -44,7 +48,7 @@ class ParsingHandler():
         file_exists = os.path.isfile(self.args.csv_path)        
         with open(self.args.csv_path, 'a', newline='') as csvfile:
             fieldnames = ["Ссылка", "Файл", 'Суд', 'Дата приговора', 'ФИО', 'Смягчающие обстоятельства', 'Вид наказания', 'Особый порядок',
-                          'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Срок наказания в месяцах',
+                          'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Главный наркотик', 'Размер', 'Срок наказания в месяцах',
                           'Отягчающие обстоятельства']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if not file_exists:
@@ -91,6 +95,7 @@ class ParsingHandler():
         logger.info(
             "Files processed: {}, skipped: {}".format(
                 self.total_files, self.error_counter))
+
     
     
 if __name__=="__main__":
