@@ -90,6 +90,7 @@ class EntityExtractor():
     , "броламфетамин" : [0.01,0.05,10] 
     , "мескалин" : [0.5,2.5,500] 
 }
+
     drugs_patterns = drugs_sizes.keys()
 
     # pattern to search punishment
@@ -169,15 +170,17 @@ class EntityExtractor():
             [ "совершение преступления в состоянии опьянения" ]
         }
 
+    # паттерны поиска размера
     general_drug_size_patterns = {
         "Особо крупный" : "в особо крупном размере",
         "Крупный" : "в крупном размере",
-        "значительный" : "в значительном размере"
+        "Значительный" : "в значительном размере"
     }
 
     def __init__(self, text):
         self.text = text.lower()
         self.paragraphs = self.text.split('\n')
+        self.errors = []
         
     @property
     def court_name(self):
@@ -186,19 +189,22 @@ class EntityExtractor():
             match = self.court_name_pattern.search(self.text)
             return match.group(1)
         except BaseException as e:
-            logger.warning("Не удалось извлечь название суда")
+            logger.critical("Не удалось извлечь название суда")
         
     @property
     def sentence_date(self):
         """ Дата приговора 
         Ищется первая дата в первых 200 символах
         """
-        date_matches = der(self.text[:self.intro_limit])
-        facts = [_.fact.as_json for _ in date_matches]
-        if len(date_matches.as_json) > 0:
-            result_dict = date_matches.as_json[0]["fact"]
-            return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
-
+        try:
+            date_matches = der(self.text[:self.intro_limit])
+            facts = [_.fact.as_json for _ in date_matches]
+            if len(date_matches.as_json) > 0:
+                result_dict = date_matches.as_json[0]["fact"]
+                return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
+        except BaseException as e:
+            logger.critical("Could not extract sentence_date: {}".format(e))
+            
     @property
     def defendants(self):
         """ Фио подсудимых """
@@ -243,7 +249,9 @@ class EntityExtractor():
                 # add regexp match to dict
                 defendants.append(match.group(1).strip(", -\t\r\n"))
         except BaseException as e:
-            logger.warning("Could not parse defendatns: {}".format(e))
+            err_msg = "Could not extract defendatns: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
 
         # return defendants list
         return ", ".join(defendants)
@@ -251,34 +259,39 @@ class EntityExtractor():
     @property
     def conviction(self):
         """ Судимость да/нет """
-        return True if any(e in self.text for e in self.conviction_patterns) else \
-            False if any(e in self.text for e in self.non_conviction_patterns) else None
+        try:
+            return True if any(e in self.text for e in self.conviction_patterns) else \
+                False if any(e in self.text for e in self.non_conviction_patterns) else None
+        except BaseException as e:
+            err_msg = "Could not extract conviction: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
+            
     
     @property
     def imprisonment(self):
         """ Отбывал ли ранее лишение свободы да/нет """
-
         # if not convicted before, then there was no imprisonment
         if self.conviction == False:
             return False
+        try:
+            # iterate all imprisonment patterns
+            for pattern in self.imprisonment_patterns:
 
-        # iterate all imprisonment patterns
-        for pattern in self.imprisonment_patterns:
+                # if matches, then there was imprisonment
+                if pattern.search(self.text) != None: return True
+        except BaseException as e:
+            err_msg = "Could not extract imprisonment: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
+  
 
-            # if matches, then there was imprisonment
-            if pattern.search(self.text) != None: return True
-
-        # no information
-        return None
-    
     @property
     def drugs(self):
         """ Словарь {Вид наркотика: количество} """
 
         # zero drugs dict
         drugs = {}
-        drug_string = ""
-        largest_drug = ""
 
         # iterate all drug mass patterns
         for pattern in self.drugs_mass_patterns:
@@ -324,48 +337,62 @@ class EntityExtractor():
                 drugs[name] = None
 
             # if no drug found
-            except: return {}, ""
+            except: return ""
 
-        found_sizes = {}
-        
-        # крупнейший наркотик
+        drug_stirng = ';'.join(['{} : {}'.format(k, v) for k, v in drugs.items()])
 
-        for drug_name, drug_mass in drugs.items():
-
-            if drug_mass > 0:
-
-                sizes_list = drugs_sizes[drug_name]
-
-                if drug_mass < sizes_list[1]: 
-                    found_sizes[drug_name] = drug_mass/sizes_list[1] # значительный - какая часть от крупного, принимает значения (0 - 1)
-
-                elif drug_mass >= sizes_list[2]: 
-                    found_sizes[drug_name] = 2 + drug_mass/sizes_list[2] # особо крупный - во сколько раз больше крупного + 2, чтобы было больше всего, принимает значения  > 2
-
-                else: 
-                    found_sizes[drug_name] = 1 + drug_mass/sizes_list[2]  # крупный - какая часть от особо крупного + 1, чтобы было больше значительного, принимает значения  (1 - 2)
-
-
-        if len(found_sizes) > 0:
-            largest_drug = max(found_sizes, key = lambda x: found_sizes[x])
-        else:
-            largest_drug = "; ".join(drugs.keys()) # если ничего не нашли, то перечисляем все через ;
-        
-        for k, v in drugs.items():
-            drug_string += "{}: {}; ".format(k, self.normalize_value(v))
-
-        return drug_string, largest_drug
-
-
-    @property
-    def drug_string(self):
-        drug_string, largest_drug = self.drugs
-        return drug_string
+        return drug_stirng
 
 
     @property
     def largest_drug(self):
-        drug_string, largest_drug = self.drugs
+
+        """ Выделение самого крупного по относительному размеру наркотика """
+
+        # строка со списком наркотиков, в рефакторинге можно перенести в метод drugs
+        drugs_pairs = self.drugs.split("; ")
+
+        # найденные массы наркотиков
+        drugs = {} 
+        largest_drug = ""
+
+        for pair in drugs_pairs:
+            try:
+                drug, size = pair.split(":")
+                mass = size.split()[0].strip()
+                if mass.isdigit():
+                    drugs[drug] = int(mass)
+            except:
+                pass
+
+        # сюда запишем размеры наркотиков относительно интервалов крупности размеров
+        found_sizes = {} 
+        
+        for drug_name, drug_match in drugs.items():
+
+            if drug_mass > 0:
+
+                # из словарика размеров получаем лист [значительный, крупный, особо крупный]
+                sizes_list = drugs_sizes[drug_name] 
+
+                # значительный - какая часть от крупного, принимает значения (0 - 1)
+                if drug_mass < sizes_list[1]: 
+                    found_sizes[drug_name] = drug_mass/sizes_list[1] 
+
+                # особо крупный - во сколько раз больше крупного + 2, чтобы было больше всего, принимает значения  > 2
+                elif drug_mass >= sizes_list[2]: 
+                    found_sizes[drug_name] = 1 + drug_mass/sizes_list[2] 
+
+                # крупный - какая часть от особо крупного + 1, чтобы было больше значительного, принимает значения  (1 - 2)
+                else: 
+                    found_sizes[drug_name] = 1 + drug_mass/sizes_list[2]  
+
+        if len(found_sizes) > 0:
+            largest_drug = max(found_sizes, key = lambda x: found_sizes[x])
+        else:
+            # если ничего не нашли, то перечисляем все через ;
+            largest_drug = "; ".join(drugs_pairs) 
+
         return largest_drug
 
 
@@ -375,7 +402,9 @@ class EntityExtractor():
         for drug_size_title, drug_size in self.general_drug_size_patterns.items():
             if drug_size in self.text:
                 return drug_size_title
-    
+
+        return ""
+
 
     @property
     def punishment(self):
@@ -441,9 +470,6 @@ class EntityExtractor():
 
         # return type and duration
         return punishment_type, punishment_duration
-
-    
-    
     
     @property
     def punishment_type(self):
@@ -468,37 +494,42 @@ class EntityExtractor():
     @property
     def extenuating_circumstances(self):
         """ Смягчающие обстоятельства """
+        try:
+            # iterate all extenuating patterns
+            for pattern in self.extenuating_patterns:
 
-        # iterate all extenuating patterns
-        for pattern in self.extenuating_patterns:
+                # match pattern
+                match = pattern.search(self.text)
 
-            # match pattern
-            match = pattern.search(self.text)
+                # if there is match
+                if match != None and len(match.groups()) > 0:
 
-            # if there is match
-            if match != None and len(match.groups()) > 0:
-
-                # return first match
-                return match.group(1).strip(" \r\n,.")
-
-        # nothing found
-        return None
+                    # return first match
+                    return match.group(1).strip(" \r\n,.")
+        except BaseException as e:        
+            err_msg = "Could not extract extenuating_circumstances: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
     
     @property
     def aggravating_circumstances(self):
         """ Отягчающие обстоятельства """
+        try:
+            # create zero list
+            aggravating_circumstances = []
 
-        # create zero list
-        aggravating_circumstances = []
+            # enumerate all aggravating patterns
+            for name, patterns in self.aggravating_patterns.items():
 
-        # enumerate all aggravating patterns
-        for name, patterns in self.aggravating_patterns.items():
+                # if there is match, add name
+                if any(e in self.text for e in patterns): aggravating_circumstances.append(name)
 
-            # if there is match, add name
-            if any(e in self.text for e in patterns): aggravating_circumstances.append(name)
-
-        # return aggravating circumstances joined by comma
-        return ",".join(aggravating_circumstances) if aggravating_circumstances else None
+            # return aggravating circumstances joined by comma
+            return ",".join(aggravating_circumstances) if aggravating_circumstances else None
+        except BaseException as e:        
+            err_msg = "Could not extract aggravating_circumstances: {}".format(e)
+            self.errors.append(err_msg)
+            logger.warning(err_msg)
     
     @property
     def special_order(self):
@@ -528,7 +559,7 @@ class EntityExtractor():
             "Вид наказания": self.punishment_type,
             "Срок наказания в месяцах": self.punishment_duration,
             "Отбывал ли ранее лишение свободы": self.imprisonment,
-            "Наркотики": self.drug_string,
+            "Наркотики": self.drugs,
             "Главный наркотик": self.largest_drug,
             "Размер": self.general_drug_size,
             "Смягчающие обстоятельства": self.extenuating_circumstances,
