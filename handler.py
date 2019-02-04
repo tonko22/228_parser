@@ -112,20 +112,29 @@ class ParsingHandler():
                 self.write_error_log(error_dict)
                     
     async def process_async(self):
-        file_exists = os.path.isfile(self.args.result_path)
-        
         async with AIOFile(self.args.result_path, mode='a', encoding='utf-8', newline="\n") as f:
-            if not file_exists:
-                f.write(",".join(self.target_fieldnames)+"\n")
-            while True:
-                await asyncio.sleep(1) 
-                f.write(",".join(map(str, test_values))+"\n")
-            
-        async with AIOFile("/tmp/hello.txt", 'a') as afp:
-            await afp.write("Hello ")
-            await afp.write("world", offset=7)
-            await afp.fsync()
-            print(await afp.read())       
+            for n, filename in enumerate(self.filenames):
+                error_dict = {
+                "filename": filename,
+                "extractor_errors": None,
+                "ner_errors": None,
+                }
+                
+                try:
+                    text = self.extract_text(filename)
+                    assert_228(text)
+                except BaseException as e:
+                    msg = "Error while reading file {}, skipping".format(str(e))
+                    logger.warning(msg)
+                    error_dict["extractor_errors"] = msg
+                    self.skipped_files += 1
+                    self.write_error_log(error_dict)
+                    continue
+                
+                ex = EntityExtractor(filename, text)
+                values = [ex.summary_dict.get(k) for k in self.result_fieldnames]
+                f.write(",".join(map(str, values))+"\n")
+                #await afp.fsync()    
     
     def report(self):
         logger.info(
