@@ -46,54 +46,62 @@ class EntityExtractor():
 
     # drugs patterns
     drugs_sizes = { 
-     "гашиш" : [2,25,10000] 
-    , "конопля": [6,100,100000] 
-    , "марихуана": [6,100,100000] 
-    , "метамфетамин": [0.3,2.5,500] 
-    , "первитин": [0.3,2.5,500] 
-    , "амфетамин": [0.2,1,200]
-    , "N-диметиламфетамин" : [0.5,2.5,500]
-    , "экстракт маковой соломы": [1,5,500] 
+     "гашиш.?.?" : [2,25,10000] 
+    , "конопл..?": [6,100,100000] 
+    , "марихуан..?": [6,100,100000] 
+    , "метамфетамин.?.?": [0.3,2.5,500] 
+    , "первитин.?.?": [0.3,2.5,500] 
+    , "амфетамин.?.?": [0.2,1,200]
+    , "N-диметиламфетамин.?.?" : [0.5,2.5,500]
+    , "экстракт.?.? маковой соломы": [1,5,500] 
     , "являющееся производным": [0,100,200] 
-    , "метилендиоксипировалерон" : [0.6,3.0,600]
-    , "альфа-пирролидиновалерофенон": [0.05,0.25,500] 
-    , "кокаин" : [0.5,5,1500] 
-    , "героин" : [0.5,2.5,1000]
-    , "3 - моноацетилморфин" : [0.5,2.5,1000]
-    , "3-моноацетилморфин" : [0.5,2.5,1000]
-    , "6-моноацетилморфин": [0.5,2.5,1000] 
-    , "6-моноацетилморфин": [0.5,2.5,1000] 
-    , "морфин": [0.5,2.5,500] 
+    , "метилендиоксипировалерон.?.?" : [0.6,3.0,600]
+    , "пирролидиновалерофенон.?.?": [0.05,0.25,500] 
+    , "кокаин.?.?" : [0.5,5,1500] 
+    , "героин.?.?" : [0.5,2.5,1000]
+    , "моноацетилморфин.?.?" : [0.5,2.5,1000]
+    , "морфин.?.?": [0.5,2.5,500] 
     , "опий" : [1,25,5000]
-    , "маковая солома" : [20,500,100000] 
-    , "ацетилкодеин": [0.5,2.5,1000] 
-    , "метадон": [0.5,2.5,1000] 
+    , "маков.. солом." : [20,500,100000] 
+    , "ацетилкодеин.?.?": [0.5,2.5,1000] 
+    , "метадон.?.?": [0.5,2.5,1000] 
     , "мдма": [0.6,3.0,600] 
     , "мда": [0.6,3.0,600] 
-    , "мефедрон": [0.2,2.5,500]  
-    , "n-метилэфедрон": [0.2,1,200] 
+    , "мефедрон.?.?": [0.2,2.5,500]  
+    , "метилэфедрон.?.?": [0.2,1,200] 
     , "3-meo-mpc": [0.05,0.25,500] 
-    , "тетраметилциклопропил": [0.05,0.25,500] 
+    , "тетраметилциклопропил.?.?": [0.05,0.25,500] 
     , "2c-b": [0.01,0.5,10] 
     , "масло каннабиса": [0.4,5,1000]
-    , "гашишное масло": [0.4,5,1000]
+    , "гашишно..?.? масл..?": [0.4,5,1000]
     , "jwh": [0.05,0.25,500] 
     , "хинолин": [0.05,0.25,500]
     , "индол" : [0.05,0.25,500]
-    , "карфентанил": [0.002,0.01,2] 
-    , "метиловый эфир": [0.05,0.25,500]
-    , "псилоцибин": [0.05,0.25,50] 
-    , "псилоцин": [0.05,0.25,50] 
+    , "карфентанил.?.?": [0.002,0.01,2] 
+    , "метилов...?.? эфир.?.?": [0.05,0.25,500]
+    , "псилоцибин.?.?": [0.05,0.25,50] 
+    , "псилоцин.?.?": [0.05,0.25,50] 
     , "дмт" : [0.5,2.5,500] 
-    , "диметилтриптамин": [0.5,2.5,500] 
+    , "диметилтриптамин.?.?": [0.5,2.5,500] 
     , "лсд": [0.0001,0.005,0.1] 
     , "nbome": [0.2,1.0,200] 
     , "доб" : [0.01,0.05,10] 
-    , "броламфетамин" : [0.01,0.05,10] 
-    , "мескалин" : [0.5,2.5,500] 
+    , "броламфетамин.?.?" : [0.01,0.05,10] 
+    , "мескалин.?.?" : [0.5,2.5,500] 
 }
 
-    drugs_patterns = list(drugs_sizes.keys())
+    special_regex_cases = {
+          r"хинолин-\d": "-хинолин-" 
+        , r"\bдигидрохинолин\b" : "-хинолин-" 
+        , r"\bтетрагидроизохинолин\b" : "-хинолин-" 
+        , r"\b-индол-\b" : "-индол-" 
+    }
+
+    special_regex_sizes = {
+          "-хинолин-" : [0.05,0.25,500]
+        , "-индол-" : [0.05,0.25,500]
+    }
+   
 
     # pattern to search punishment
     punishment_patterns = [
@@ -180,7 +188,7 @@ class EntityExtractor():
     }
     def __init__(self, filename, text):
         self.filename = filename
-        self.text = text
+        self.text = text.lower()
         self.paragraphs = self.text.split('\n')
         self.errors = []
         
@@ -327,7 +335,7 @@ class EntityExtractor():
                         try:
                             name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", match[0]))
                         except:
-                            name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, match[0]))
+                            name = next(self.special_regex_cases[drug_pattern] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, match[0]))
                         
                         # correct name if necessary
                         if name == "является производным": name = "производное"
@@ -352,7 +360,7 @@ class EntityExtractor():
                 try:
                     name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", self.text))
                 except:
-                    name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
+                    name = next(self.special_regex_cases[drug_pattern] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
 
                 # correct name if necessary
                 if name == "является производным": name = "производное"
@@ -378,7 +386,8 @@ class EntityExtractor():
         
         # строка со списком наркотиков, в рефакторинге можно перенести в метод drugs
         drugs_pairs = self.drugs.split("; ")
-
+        just_names = []
+        
         # найденные массы наркотиков
         drugs = {} 
         largest_drug = ""
@@ -386,7 +395,7 @@ class EntityExtractor():
         for pair in drugs_pairs:
             try:
                 drug, size = pair.split(":")
-
+                just_names.append(drug)
                 mass = size.split()[0].strip()
                 mass = mass.replace(" ", "")
                 mass = mass.replace(",", ".")
@@ -400,12 +409,20 @@ class EntityExtractor():
         found_sizes = {} 
         
         for drug_name, drug_mass in drugs.items():
-
+            
+            
             if drug_mass > 0:
 
                 # из словарика размеров получаем лист [значительный, крупный, особо крупный]
-                sizes_list = self.drugs_sizes[drug_name] 
+                if drug_name in self.drugs_sizes:
+                    sizes_list = self.drugs_sizes[drug_name]
 
+                elif drug_name in self.special_regex_sizes:
+                    sizes_list = self.special_regex_sizes[drug_name]
+                
+                else:
+                    continue
+                    
                 # значительный - какая часть от крупного, принимает значения (0 - 1)
                 if drug_mass < sizes_list[1]: 
                     found_sizes[drug_name] = drug_mass/sizes_list[1] 
@@ -422,7 +439,7 @@ class EntityExtractor():
             largest_drug = max(found_sizes, key = lambda x: found_sizes[x])
         else:
             # если ничего не нашли, то перечисляем все через ;
-            largest_drug = "; ".join(drugs_pairs) 
+            largest_drug = "; ".join(just_names) 
 
         return largest_drug
 
