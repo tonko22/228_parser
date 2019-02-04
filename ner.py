@@ -368,7 +368,7 @@ class EntityExtractor():
                 try:
                     name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", self.text))
                 except:
-                    name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
+                    name = next(self.special_regex_cases[drug_pattern] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
 
                 # correct name if necessary
                 if name == "является производным": name = "производное"
