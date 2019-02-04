@@ -256,7 +256,7 @@ class EntityExtractor():
 
                     # create full name, if part (last/first/middle/) is not found, dict.get(key) returns None
                     last = defendant_dict.get("last")
-                    first = firstdefendant_dict.get("first")
+                    first = defendant_dict.get("first")
                     middle = defendant_dict.get("middle")
                     full_name = "{} {}.{}".format(last, first, middle)
                     defendants.append(full_name)
@@ -331,7 +331,7 @@ class EntityExtractor():
                         
                         # correct name if necessary
                         if name == "является производным": name = "производное"
-                        logger.info("Found drug name: {}".format(name))
+                        # logger.info("Found drug name: {}".format(name))
                         
                     # if no drug found
                     except:
