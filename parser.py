@@ -6,9 +6,16 @@ import logging
 from ner import EntityExtractor
 import csv
 from typing import Dict
+import re
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s %(funcName)s %(message)s')
+
+
+def validate_text(text):
+    ''' Содержит ли текст приговора 228 ч. 2 '''
+    pattern = r"преступлени(.*)?предусмотренн(.*)?((ч([. ]*)?|часть.? )2 ст([\w\. ]*)?228|228 (ч([.\- ]*)?|часть.? )2|228\..?2)"
+    return True if re.search(pattern, text) else False
 
 class ParsingHandler():
     log_path = "log.csv"
@@ -42,7 +49,7 @@ class ParsingHandler():
         """ If csvfile is a file object, it should be opened with newline=''
         """
         file_exists = os.path.isfile(self.args.csv_path)        
-        with open(self.args.csv_path, 'a', newline='') as csvfile:
+        with open(self.args.csv_path, mode='a', encoding='utf-8', newline='') as csvfile:
             fieldnames = ["Ссылка", "Файл", 'Суд', 'Дата приговора', 'ФИО', 'Смягчающие обстоятельства', 'Вид наказания', 'Особый порядок',
                           'Отбывал ли ранее лишение свободы', 'Судимость', 'Наркотики', 'Главный наркотик', 'Размер', 'Срок наказания в месяцах',
                           'Отягчающие обстоятельства']
@@ -53,7 +60,7 @@ class ParsingHandler():
         
     def write_error_log(self, error_dict):
         file_exists = os.path.isfile(self.log_path)        
-        with open(self.log_path, 'a', newline='') as csvfile:
+        with open(self.log_path, mode='a', encoding='utf-8', newline='') as csvfile:
             fieldnames = ['filename', "extractor_errors", "ner_errors"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             if not file_exists:
@@ -69,7 +76,7 @@ class ParsingHandler():
             error_dict = {
                 "filename": filename,
                 "extractor_errors": None,
-                "ner_errors": None
+                "ner_errors": None,
             }
             
             try:
@@ -78,7 +85,14 @@ class ParsingHandler():
                 logger.error("Error while extracting {}, skipping".format(e))
                 error_dict["extractor_errors"] = str(e)
                 self.skipped_files += 1
-                break
+                self.write_error_log(error_dict)
+                continue
+
+            if not validate_text(text):
+                self.skipped_files += 1
+                error_dict["extractor_errors"] = "228.2 not found, skipping"
+                self.write_error_log(error_dict)
+                continue
                     
             ex = EntityExtractor(filename, text)
             self.write_result_csv(ex.summary_dict)
@@ -92,7 +106,10 @@ class ParsingHandler():
     def report(self):
         logger.info(
             "Files processed: {}, skipped: {}".format(
-                self.total_files, self.error_counter))
+                self.total_files, self.skipped_files))
+
+
+
 
     
     
