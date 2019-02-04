@@ -319,7 +319,7 @@ class EntityExtractor():
             # if there are matches
             if matches:
                 for match in matches:
-                    logger.info("Found drug_match: {}".format(match))
+                    
                     # for catching exceptions on index()
                     try:
 
@@ -328,12 +328,16 @@ class EntityExtractor():
                             name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", match[0]))
                         except:
                             name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, match[0]))
-
+                        
                         # correct name if necessary
                         if name == "является производным": name = "производное"
-
+                        logger.info("Found drug name: {}".format(name))
+                        
                     # if no drug found
                     except:
+                        err_msg = "No drug name found for match: {}".format(match)
+                        self.errors.append(err_msg)
+                        logger.warning(err_msg)
                         continue
 
                     # add drug to dict
@@ -357,11 +361,14 @@ class EntityExtractor():
                 drugs[name] = None
 
             # if no drug found
-            except: return ""
+            except: 
+                err_msg = "No drugs found in whole text, check matches: {}".format(matches)
+                self.errors.append(err_msg)
+                logger.warning(err_msg)
+                return ""
             
          # TODO: move to self.normalize_values() with dict type check
         drug_string = '; '.join(k+': '+self.normalize_value(v) for k, v in drugs.items())
-        logger.info("")
         return drug_string
 
 
