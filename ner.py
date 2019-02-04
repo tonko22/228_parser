@@ -346,13 +346,17 @@ class EntityExtractor():
                     try:
 
                         # get name of drug
-                        name = [self.drugs_patterns[i] for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in match[0]][0]
+                        try:
+                            name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", match[0]))
+                        except:
+                            name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, match[0]))
 
                         # correct name if necessary
                         if name == "является производным": name = "производное"
 
                     # if no drug found
-                    except: continue
+                    except:
+                        continue
 
                     # add drug to dict
                     if name not in drugs:
@@ -364,11 +368,10 @@ class EntityExtractor():
             # find drug patterns in the whole text
             try:
 
-                # get index of drug
                 try:
                     name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", self.text))
                 except:
-                    name = next(self.special_regex_cases[drug_pattern] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
+                    name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
 
                 # correct name if necessary
                 if name == "является производным": name = "производное"
