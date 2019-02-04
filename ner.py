@@ -254,10 +254,11 @@ class EntityExtractor():
                     # uppercase first letter
                     defendant_dict["last"] = defendant_dict["last"][0].upper() + defendant_dict["last"][1:]
 
-                    # create full name
-                    full_name = "{} {}.{}".format(defendant_dict["last"], defendant_dict["first"], defendant_dict["middle"])
-
-                    # add to dict
+                    # create full name, if part (last/first/middle/) is not found, dict.get(key) returns None
+                    last = defendant_dict.get("last")
+                    first = firstdefendant_dict.get("first")
+                    middle = defendant_dict.get("middle")
+                    full_name = "{} {}.{}".format(last, first, middle)
                     defendants.append(full_name)
 
                 # if there are no matches
@@ -268,7 +269,6 @@ class EntityExtractor():
 
             # if there are no matches
             else:
-
                 # add regexp match to dict
                 defendants.append(match.group(1).strip(", -\t\r\n"))
         except BaseException as e:
@@ -311,46 +311,44 @@ class EntityExtractor():
     @property
     def drugs(self):
         """ Словарь {Вид наркотика: количество} """
-
-        # zero drugs dict
         drugs = {}
-
-        # iterate all drug mass patterns
         for pattern in self.drugs_mass_patterns:
-
             # search for all drug mass patterns
             matches = pattern.findall(self.text)
-
+            
             # if there are matches
             if matches:
-
-                # iterate all matches
                 for match in matches:
-
+                    logger.info("Found drug_match: {}".format(match))
                     # for catching exceptions on index()
                     try:
 
                         # get name of drug
-                        name = [self.drugs_patterns[i] for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in match[0]][0]
+                        try:
+                            name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", match[0]))
+                        except:
+                            name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, match[0]))
 
                         # correct name if necessary
                         if name == "является производным": name = "производное"
 
                     # if no drug found
-                    except: continue
+                    except:
+                        continue
 
                     # add drug to dict
                     if name not in drugs:
                         drugs[name] = match[1] + " " + match[2]
 
-        # if there are no matches
+        # if there were no matches
         if not drugs:
 
             # find drug patterns in the whole text
             try:
-
-                # get index of drug
-                name = [self.drugs_patterns[i] for i in range(len(self.drugs_patterns)) if self.drugs_patterns[i] in self.text][0]
+                try:
+                    name = next(drug_pattern for drug_pattern in self.drugs_sizes.keys() if re.search(r"\b"+drug_pattern+r"\b", self.text))
+                except:
+                    name = next(self.special_regex_cases[name] for drug_pattern in self.special_regex_cases.keys() if re.search(drug_pattern, self.text))
 
                 # correct name if necessary
                 if name == "является производным": name = "производное"
@@ -360,21 +358,17 @@ class EntityExtractor():
 
             # if no drug found
             except: return ""
-
-        # drug_string = ""
-        # for k, v in drugs.items():
-        #     drug_string += "{}: {}; ".format(k, self.normalize_value(v))
-        # return drug_string
+            
+         # TODO: move to self.normalize_values() with dict type check
         drug_string = '; '.join(k+': '+self.normalize_value(v) for k, v in drugs.items())
-
+        logger.info("")
         return drug_string
 
 
     @property
     def largest_drug(self):
-
         """ Выделение самого крупного по относительному размеру наркотика """
-
+        
         # строка со списком наркотиков, в рефакторинге можно перенести в метод drugs
         drugs_pairs = self.drugs.split("; ")
 
@@ -503,13 +497,8 @@ class EntityExtractor():
     
     @property
     def punishment_type(self):
-        """ Вид наказания (лишение свободы/ условное лишение свободы) """
-
-        # extract info about punishment
-        p_type, p_duration = self.punishment
-
-        # return punishment type
-        return p_type
+        """ Вид наказания (лишение свободы/ условное лишение свободы) """ 
+        return self.punishment[0] # punishment type
     
     @property
     def punishment_duration(self):
@@ -597,5 +586,5 @@ class EntityExtractor():
             "Смягчающие обстоятельства": self.extenuating_circumstances,
             "Отягчающие обстоятельства": self.aggravating_circumstances
         }
-        summary_dict_normalized = {k: self.р(v) for k, v in summary_dict.items()}
+        summary_dict_normalized = {k: self.normalize_value(v) for k, v in summary_dict.items()}
         return summary_dict_normalized
