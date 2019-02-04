@@ -6,7 +6,6 @@ from ner import EntityExtractor
 import csv
 from typing import Dict
 import re
-import asyncio
 from aiofile import AIOFile
 
 logger = logging.getLogger()
@@ -34,15 +33,11 @@ class ParsingHandler():
         self.total_files = len(self.filenames)
         
         self.skipped_files = 0   
-        self.write
         
         if not os.path.isfile(self.args.error_log_path):
             self.write_error_log_header()
         if not os.path.isfile(self.args.result_path):
             self.write_result_header()
-            
-        # self.process_files()
-        # self.report()
         
     def extract_text(self, filename):
         """ Format detection and text extraction as a string """
@@ -112,7 +107,7 @@ class ParsingHandler():
                 self.write_error_log(error_dict)
                     
     async def process_async(self):
-        async with AIOFile(self.args.result_path, mode='a', encoding='utf-8', newline="\n") as f:
+        async with AIOFile(self.args.result_path, mode='a', encoding='utf-8') as f:
             for n, filename in enumerate(self.filenames):
                 error_dict = {
                 "filename": filename,
