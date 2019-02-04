@@ -78,7 +78,7 @@ class ParsingHandler():
                 logger.error("Error while extracting {}, skipping".format(e))
                 error_dict["extractor_errors"] = str(e)
                 self.skipped_files += 1
-                continue
+                break
                     
             ex = EntityExtractor(filename, text)
             self.write_result_csv(ex.summary_dict)
