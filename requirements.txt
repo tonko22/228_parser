@@ -1,1 +1,7 @@
 natasha==0.10.0
+python_docx==0.8.10
+requests==2.20.1
+aiofile==1.5.1
+beautifulsoup4==4.7.1
+docx==0.2.4
+typing==3.6.6

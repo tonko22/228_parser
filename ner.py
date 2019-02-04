@@ -198,7 +198,8 @@ class EntityExtractor():
         try:
             return html_extract.get_link(self.filename)
         except BaseException as e:
-            msg = "Could not parse link from filename {}".format(self.filename)
+            msg = "Could not parse link from filename {}, {}, skipping".format(
+                self.filename, str(e))
             self.errors.append(msg)
             logger.critical(msg)
             
@@ -231,7 +232,10 @@ class EntityExtractor():
             facts = [_.fact.as_json for _ in date_matches]
             if len(date_matches.as_json) > 0:
                 result_dict = date_matches.as_json[0]["fact"]
-                return "{}/{}/{}".format(result_dict["year"], result_dict["month"], result_dict["day"])
+                year = result_dict.get("year")
+                month = result_dict.get("month")
+                day = result_dict.get("day")
+                return "{}/{}/{}".format(year, month, day)
         except BaseException as e:
             err_msg = "Could not extract sentence_date: {}".format(e)
             logger.critical(err_msg)
@@ -344,9 +348,9 @@ class EntityExtractor():
                         
                     # if no drug found
                     except:
-                        err_msg = "No drug name found for match: {}".format(match)
-                        self.errors.append(err_msg)
-                        logger.warning(err_msg)
+                        #err_msg = "No drug name found in re.match: {}".format(match)
+                        #self.errors.append(err_msg)
+                        #logger.warning(err_msg)
                         continue
 
                     # add drug to dict
@@ -582,6 +586,9 @@ class EntityExtractor():
     
     @staticmethod
     def normalize_value(value):
+        if isinstance(value, dict):
+            dict_value_normalized = {k: self.normalize_value(v) for k, v in summary_dict.items()}
+            return dict_value_normalized
         if value==False:
             return "нет"
         if value==True:
