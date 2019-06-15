@@ -77,6 +77,21 @@ class Page:
     def go_to_next_page(self):
         pass
 
+class Case():
+    
+    
+    def __init__(self, case_json):
+        self.case_json = case_json
+        self.case = case_json["document"]
+        self.case_fields = case["fields"]
+        
+    def parse_field(field_name: str, field_key: str):
+        return {field_name, self.case_fields[field_name[field_key]]} 
+    
+    def extract_values(field: dict) -> dict:
+        target_values = ["value", "valueWOHL", "longValue", "dateValue"]
+        return {v: field[v] for v in target_values}
+
 if __name__=="__main__":
     search_page = Page(target_url)
     case_page_url = search_page.current_page_case_urls[0]
