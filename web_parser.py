@@ -78,20 +78,25 @@ class Page:
         pass
 
 class Case():
-    
-    
     def __init__(self, case_json):
         self.case_json = case_json
         self.case = case_json["document"]
         self.case_fields = case["fields"]
         
-    def parse_field(field_name: str, field_key: str):
+    def parse_field_kv(field_name: str, field_key: str) -> dict:
         return {field_name, self.case_fields[field_name[field_key]]} 
     
+    @staticmethod
     def extract_values(field: dict) -> dict:
         target_values = ["value", "valueWOHL", "longValue", "dateValue"]
         return {v: field[v] for v in target_values}
-
+    
+    def save_case_data_csv(self):
+        df = pd.DataFrame(self.case_fields)
+        case_title = df[df["comment"]=="Название"]["value"].values[0]
+        datetime_str = df[df["comment"]=="Дата решения"]["dateValue"].values[0]
+        df.to_pickle
+        
 if __name__=="__main__":
     search_page = Page(target_url)
     case_page_url = search_page.current_page_case_urls[0]
