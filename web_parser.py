@@ -1,15 +1,12 @@
 from functools import partial
 import re
-
 import logging
 import selenium as se
 import requests
 import json
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
 from utils import LazyProperty
 
 
@@ -90,12 +87,6 @@ class Case():
     def extract_values(field: dict) -> dict:
         target_values = ["value", "valueWOHL", "longValue", "dateValue"]
         return {v: field[v] for v in target_values}
-    
-    def save_case_data_csv(self):
-        df = pd.DataFrame(self.case_fields)
-        case_title = df[df["comment"]=="Название"]["value"].values[0]
-        datetime_str = df[df["comment"]=="Дата решения"]["dateValue"].values[0]
-        df.to_pickle
         
 if __name__=="__main__":
     search_page = Page(target_url)
