@@ -21,11 +21,14 @@ class Page:
     
     re_pattern_id_from_url = "(?<=id=)(.*?)(?=&shard)" # 
 
-    def __init__(self, url, pattern_key: str="bsr.sudrf.ru"):
+    def __init__(self, url: str):
         self.url = url
+        '''
         self.options = se.webdriver.ChromeOptions()
         self.options.add_argument('headless')
         self.driver = se.webdriver.Chrome(options=self.options)
+        '''
+        self.driver = se.webdriver.Firefox()
         self.driver.implicitly_wait(30) # timeout for slow JS requests 
         self.driver.get(self.url)
         
