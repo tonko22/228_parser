@@ -1,9 +1,14 @@
+import math
 from functools import partial
 import re
 import logging
 import selenium as se
 import requests
 import json
+from time import sleep
+from random import randint
+from selenium import webdriver
+from pyvirtualdisplay import Display
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,7 +18,7 @@ from utils import LazyProperty
 logger = logging.getLogger()
 
 
-class Page:
+class PageParser:
     element_css_tags = {
         "case_link" : ".resultHeader.openCardLink",
         "file_url": ".bigField"
@@ -28,14 +33,26 @@ class Page:
         self.options.add_argument('headless')
         self.driver = se.webdriver.Chrome(options=self.options)
         '''
-        self.driver = se.webdriver.Firefox()
-        self.driver.implicitly_wait(30) # timeout for slow JS requests 
-        self.driver.get(self.url)
+        self.display = Display(visible=0, size=(800, 600))
+        self.display.start()
+        self.driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver") # "/var/chromedriver/chromedriver"
+        sleep(5)
+        self.driver.get(url)
+        sleep(5)
         
     def get_elements_by_css_selector(self, element_name: str):
         css_tag = self.element_css_tags.get(element_name)
         elements = self.driver.find_elements(by=By.CSS_SELECTOR, value=css_tag)
         return list(elements)
+
+    @LazyProperty
+    def page_count(self):
+        """ Extract resulting cases count 
+        and calculate page count assuming there are 10 cases per page """
+        case_count_element = self.driver.find_element(by=By.ID, value="resultCount")
+        case_count = case_count_element.text.split(' ')[-1][:-1]
+        page_count = math.ceil(int(case_count)/10)
+        return page_count
 
     @LazyProperty
     def case_elemenets(self) -> list:

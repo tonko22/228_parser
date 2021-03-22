@@ -2,7 +2,7 @@ import re
 import json
 from natasha import NamesExtractor, DatesExtractor
 from natasha.markup import format_json
-import html_extract
+import html_extractor
 import logging 
 
 logger = logging.getLogger()
